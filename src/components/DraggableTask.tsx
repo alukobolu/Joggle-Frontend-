@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { Clock } from 'lucide-react';
 import { Card } from './ui/card';
@@ -33,6 +33,55 @@ export function DraggableTask({
   isCompleted = false
 }: DraggableTaskProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const [isLongPress, setIsLongPress] = useState(false);
+  const [isDragEnabled, setIsDragEnabled] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const LONG_PRESS_DURATION = 300; // 500ms
+
+  // Long press handlers
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // Prevent default to avoid conflicts with scrolling
+    e.preventDefault();
+    
+    // Clear any existing timer
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+    
+    // Start long press timer
+    longPressTimer.current = setTimeout(() => {
+      setIsLongPress(true);
+      setIsDragEnabled(true);
+      // Add haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }, LONG_PRESS_DURATION);
+  }, []);
+
+  const handlePointerUp = useCallback(() => {
+    // Clear timer on pointer up
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    // Reset states after a short delay to allow for visual feedback
+    setTimeout(() => {
+      setIsLongPress(false);
+      setIsDragEnabled(false);
+    }, 100);
+  }, []);
+
+  const handlePointerCancel = useCallback(() => {
+    // Clear timer on pointer cancel
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    setIsLongPress(false);
+    setIsDragEnabled(false);
+  }, []);
 
   const [{ handlerId }, drop] = useDrop({
     accept: 'task',
@@ -98,17 +147,28 @@ export function DraggableTask({
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
+    canDrag: isDragEnabled, // Only allow drag when long press is active
   });
 
   const opacity = isDragging ? 0.4 : 1;
-  drag(drop(ref));
+  
+  // Conditionally apply drag functionality
+  if (isDragEnabled) {
+    drag(drop(ref));
+  } else {
+    drop(ref);
+  }
 
   return (
     <Card 
       ref={ref}
-      className={`${isCompleted ? 'bg-white/3 border-white/5 opacity-70' : 'bg-white/5 border-white/10 hover:bg-white/10'} p-4 rounded-2xl transition-all duration-200 cursor-move`}
+      className={`${isCompleted ? 'bg-white/3 border-white/5 opacity-70' : 'bg-white/5 border-white/10 hover:bg-white/10'} p-4 rounded-2xl transition-all duration-200 ${isDragEnabled ? 'cursor-grabbing' : 'cursor-grab'} ${isLongPress ? 'scale-105 shadow-lg ring-2 ring-blue-400/50' : ''}`}
       style={{ opacity }}
       data-handler-id={handlerId}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onPointerLeave={handlePointerCancel}
     >
       <div className="flex items-start gap-3">
         <div className="mt-1">

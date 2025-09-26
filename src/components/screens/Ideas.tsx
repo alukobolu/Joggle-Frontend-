@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useEffect, useMemo, useState, forwardRef, useImperativeHandle, useRef, useCallback } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { Plus, Folder as FolderIcon, Lightbulb, MoreVertical, Edit3, Trash2, ChevronRight } from 'lucide-react';
 import { Card } from '../ui/card';
@@ -116,13 +116,72 @@ type IdeaCardProps = {
 };
 
 const IdeaCard: React.FC<IdeaCardProps> = ({ idea, onEdit, onDelete }) => {
+  const [isLongPress, setIsLongPress] = useState(false);
+  const [isDragEnabled, setIsDragEnabled] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const LONG_PRESS_DURATION = 500; // 500ms
+
+  // Long press handlers
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // Prevent default to avoid conflicts with scrolling
+    e.preventDefault();
+    
+    // Clear any existing timer
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+    
+    // Start long press timer
+    longPressTimer.current = setTimeout(() => {
+      setIsLongPress(true);
+      setIsDragEnabled(true);
+      // Add haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }, LONG_PRESS_DURATION);
+  }, []);
+
+  const handlePointerUp = useCallback(() => {
+    // Clear timer on pointer up
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    // Reset states after a short delay to allow for visual feedback
+    setTimeout(() => {
+      setIsLongPress(false);
+      setIsDragEnabled(false);
+    }, 100);
+  }, []);
+
+  const handlePointerCancel = useCallback(() => {
+    // Clear timer on pointer cancel
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    setIsLongPress(false);
+    setIsDragEnabled(false);
+  }, []);
+
   const [{ isDragging }, dragRef] = useDrag(() => ({
     type: DND_TYPE_IDEA,
     item: { ideaId: idea.id },
     collect: (monitor) => ({ isDragging: monitor.isDragging() }),
-  }), [idea.id]);
+    canDrag: isDragEnabled, // Only allow drag when long press is active
+  }), [idea.id, isDragEnabled]);
+  
   return (
-    <Card ref={dragRef} className={`bg-white/5 border-white/10 p-4 rounded-2xl ${isDragging ? 'opacity-50' : ''}`}>
+    <Card 
+      ref={isDragEnabled ? dragRef : null} 
+      className={`bg-white/5 border-white/10 p-4 rounded-2xl ${isDragging ? 'opacity-50' : ''} ${isDragEnabled ? 'cursor-grabbing' : 'cursor-grab'} ${isLongPress ? 'scale-105 shadow-lg ring-2 ring-blue-400/50' : ''}`}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onPointerLeave={handlePointerCancel}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1 pr-3">
           <h3 className="text-white text-sm mb-1">{idea.title}</h3>
