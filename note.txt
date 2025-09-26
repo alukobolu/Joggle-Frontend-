@@ -1,0 +1,266 @@
+"jsr:": "^supabase", 
+"npm:hono": "*",
+
+import React, { useState, useCallback } from 'react';
+import { Clock, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Card } from '../ui/card';
+import { Checkbox } from '../ui/checkbox';
+import { DraggableTask } from '../DraggableTask';
+
+export function TodaysFocus() {
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [tasks, setTasks] = useState([
+    {
+      id: 1,
+      title: 'Prepare investor deck presentation for everybody in nigeria that does business with us',
+      project: 'Business',
+      priority: 'high',
+      timeLabel: 'Before 6pm',
+      completed: false,
+    },
+    {
+      id: 2,
+      title: 'Review mobile app wireframes',
+      project: 'Design',
+      priority: 'high',
+      timeLabel: 'Due Friday',
+      completed: false,
+    },
+    {
+      id: 3,
+      title: 'Buy groceries for dinner',
+      project: 'Personal',
+      priority: 'medium',
+      timeLabel: 'Before 7pm',
+      completed: false,
+    },
+    {
+      id: 4,
+      title: 'Call with development team',
+      project: 'Work',
+      priority: 'medium',
+      timeLabel: '2:00 PM',
+      completed: true,
+    },
+    {
+      id: 5,
+      title: 'Update project documentation',
+      project: 'Work',
+      priority: 'low',
+      timeLabel: 'End of day',
+      completed: false,
+    },
+    {
+      id: 6,
+      title: 'Plan weekend family trip',
+      project: 'Family',
+      priority: 'low',
+      timeLabel: 'This week',
+      completed: false,
+    },
+    {
+      id: 7,
+      title: 'Plan weekend family trip',
+      project: 'Family',
+      priority: 'low',
+      timeLabel: 'This week',
+      completed: false,
+    },
+    {
+      id: 8,
+      title: 'Plan weekend family trip',
+      project: 'Family',
+      priority: 'low',
+      timeLabel: 'This week',
+      completed: false,
+    },
+    {
+      id: 9,
+      title: 'Plan weekend family trip',
+      project: 'Family',
+      priority: 'low',
+      timeLabel: 'This week',
+      completed: false,
+    },
+    {
+      id: 10,
+      title: 'Plan weekend family trip',
+      project: 'Family',
+      priority: 'low',
+      timeLabel: 'This week',
+      completed: false,
+    },
+    {
+      id: 11,
+      title: 'Plan weekend family trip',
+      project: 'Family',
+      priority: 'low',
+      timeLabel: 'This week',
+      completed: false,
+    },
+  ]);
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'bg-[#FF4C4C]';
+      case 'medium': return 'bg-[#FFC947]';
+      case 'low': return 'bg-[#4CAF50]';
+      default: return 'bg-[#B0B0B0]';
+    }
+  };
+
+  const getProjectColor = (project: string) => {
+    switch (project) {
+      case 'Business': return 'text-[#C9B6E4]';
+      case 'Design': return 'text-[#A8E6CF]';
+      case 'Work': return 'text-[#89CFF0]';
+      case 'Personal': return 'text-[#FFF9A6]';
+      case 'Family': return 'text-[#FF9AA2]';
+      default: return 'text-[#B0B0B0]';
+    }
+  };
+
+  const incompleteTasks = tasks.filter(task => !task.completed);
+  const completedTasks = tasks.filter(task => task.completed);
+
+  const toggleTask = (taskId: number) => {
+    setTasks(tasks.map(task => 
+      task.id === taskId 
+        ? { ...task, completed: !task.completed }
+        : task
+    ));
+  };
+
+  const moveTask = useCallback((dragIndex: number, hoverIndex: number) => {
+    setTasks(prevTasks => {
+      const currentIncompleteTasks = prevTasks.filter(task => !task.completed);
+      const currentCompletedTasks = prevTasks.filter(task => task.completed);
+      
+      const draggedTask = currentIncompleteTasks[dragIndex];
+      const updatedIncompleteTasks = [...currentIncompleteTasks];
+      updatedIncompleteTasks.splice(dragIndex, 1);
+      updatedIncompleteTasks.splice(hoverIndex, 0, draggedTask);
+      
+      return [...updatedIncompleteTasks, ...currentCompletedTasks];
+    });
+  }, []);
+
+  // Calculate category counts
+  const getCategoryCounts = () => {
+    const counts = tasks.reduce((acc, task) => {
+      acc[task.project] = (acc[task.project] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    return counts;
+  };
+
+  const categoryColors = {
+    'Business': '#C9B6E4',
+    'Design': '#A8E6CF', 
+    'Work': '#89CFF0',
+    'Personal': '#FFF9A6',
+    'Family': '#FF9AA2'
+  };
+
+  const categoryCounts = getCategoryCounts();
+
+  return (
+    <div className="flex-1 p-4 pb-24 overflow-y-auto scrollbar-hide">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-xl text-white mb-2">Today's Focus</h1>
+        <p className="text-[#B0B0B0] text-sm">
+          {incompleteTasks.length} tasks remaining • {completedTasks.length} completed
+        </p>
+      </div>
+
+      {/* Today's Tasks */}
+      {incompleteTasks.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-lg text-white mb-4">Today's Task</h2>
+          <div className="space-y-3">
+            {incompleteTasks.map((task, index) => (
+              <DraggableTask
+                key={task.id}
+                task={task}
+                index={index}
+                onToggle={toggleTask}
+                onMove={moveTask}
+                getPriorityColor={getPriorityColor}
+                getProjectColor={getProjectColor}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
+
+      {/* Completed Tasks */}
+      {completedTasks.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
+            className="w-full text-left mb-4 flex items-center justify-between group hover:bg-white/5 rounded-lg p-2 -m-2 transition-all duration-200"
+          >
+            <div className="flex items-center gap-2">
+              <Check className="w-5 h-5 text-[#4CAF50]" />
+              <h2 className="text-lg text-white">Completed</h2>
+              <span className="text-sm text-[#B0B0B0]">({completedTasks.length})</span>
+            </div>
+            {showCompleted ? (
+              <ChevronUp className="w-5 h-5 text-[#B0B0B0] group-hover:text-white transition-colors" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-[#B0B0B0] group-hover:text-white transition-colors" />
+            )}
+          </button>
+          
+          {showCompleted && (
+            <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
+              {completedTasks.map((task, index) => (
+                <DraggableTask
+                  key={task.id}
+                  task={task}
+                  index={index}
+                  onToggle={toggleTask}
+                  onMove={() => {}} // Completed tasks don't need to be reorderable
+                  getPriorityColor={getPriorityColor}
+                  getProjectColor={getProjectColor}
+                  isCompleted={true}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Category Widgets */}
+      <div className="mb-6">
+        <h2 className="text-lg text-white mb-4">Categories</h2>
+        <div className="grid grid-cols-2 gap-3">
+          {Object.entries(categoryCounts).map(([category, count]) => (
+            <Card 
+              key={category}
+              className="bg-white/5 border-white/10 p-4 rounded-2xl hover:bg-white/10 transition-all duration-200"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-white text-sm mb-1">{category}</h3>
+                  <p className="text-xs text-[#B0B0B0]">{count} task{count !== 1 ? 's' : ''}</p>
+                </div>
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: `${categoryColors[category as keyof typeof categoryColors]}20` }}
+                >
+                  <div 
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: categoryColors[category as keyof typeof categoryColors] }}
+                  />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
